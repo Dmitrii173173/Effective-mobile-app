@@ -1,0 +1,29 @@
+# Зависимости
+node_modules/
+
+# Файлы сборки
+dist/
+build/
+
+# Локальные переменные окружения
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Логи
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Файлы покрытия тестов
+coverage/
+
+# TypeScript incremental compilation cache
+*.tsbuildinfo
+
+# Временные файлы
+.tmp/

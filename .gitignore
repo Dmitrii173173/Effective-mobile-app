@@ -1,0 +1,42 @@
+# Зависимости
+node_modules/
+
+# Файлы сборки
+dist/
+build/
+.next/
+out/
+
+# Локальные переменные окружения
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Логи
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Директории IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Mac OS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Docker 
+docker-volumes/
+.docker/
