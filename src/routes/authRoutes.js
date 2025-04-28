@@ -32,36 +32,64 @@ const router = express.Router()
  *         description: Ошибка сервера
  */
 router.post('/register', async (req, res) => {
-    const { username, password } = req.body
-    // save the username and an irreversibly encrypted password
-    // save gilgamesh@gmail.com | aklsdjfasdf.asdf..qwe..q.we...qwe.qw.easd
+    const { username, password, role } = req.body
 
-    // encrypt the password
+    // Проверка роли - только суперпользователь может создавать админов
+    if (role === 'admin' || role === 'superuser') {
+        // Проверка токена для авторизации
+        const token = req.headers['authorization'];
+        if (!token) {
+            return res.status(403).json({ error: 'Требуется авторизация суперпользователя' });
+        }
+
+        try {
+            // Декодирование токена
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            
+            // Проверка роли пользователя
+            if (decoded.role !== 'superuser') {
+                return res.status(403).json({ error: 'Только суперпользователь может создавать пользователей с ролью администратора' });
+            }
+            
+        } catch (err) {
+            return res.status(401).json({ error: 'Недействительный токен' });
+        }
+    }
+
+    // Шифруем пароль
     const hashedPassword = bcrypt.hashSync(password, 8)
 
-    // save the new user and hashed password to the db
     try {
+        // Создаем пользователя с указанной ролью или по умолчанию 'user'
         const user = await prisma.user.create({
             data: {
                 username,
-                password: hashedPassword
+                password: hashedPassword,
+                role: role || 'user'
             }
         })
 
-        // now that we have a user, I want to add their first todo for them
-        const defaultTodo = `Hello :) Add your first todo!`
+        // Добавляем первую задачу для пользователя
         await prisma.todo.create({
             data: {
-                task: defaultTodo,
+                task: `Привет! Добавьте свою первую задачу!`,
                 userId: user.id
             }
         })
 
-        // create a token
-        const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '24h' })
-        res.json({ token })
+        // Создаем токен с информацией о роли
+        const token = jwt.sign({ 
+            id: user.id, 
+            role: user.role,
+            username: user.username
+        }, process.env.JWT_SECRET, { expiresIn: '24h' })
+        
+        res.json({ token, role: user.role })
     } catch (err) {
         console.log(err.message)
+        if (err.code === 'P2002') {
+            return res.status(409).json({ error: 'Пользователь с таким именем уже существует' })
+        }
         res.sendStatus(503)
     }
 })
@@ -97,30 +125,35 @@ router.post('/register', async (req, res) => {
  *         description: Ошибка сервера
  */
 router.post('/login', async (req, res) => {
-    // we get their email, and we look up the password associated with that email in the database
-    // but we get it back and see it's encrypted, which means that we cannot compare it to the one the user just used trying to login
-    // so what we can to do, is again, one way encrypt the password the user just entered
-
     const { username, password } = req.body
 
     try {
+        // Поиск пользователя в базе данных
         const user = await prisma.user.findUnique({
             where: {
                 username: username
             }
         })
 
-        // if we cannot find a user associated with that username, return out from the function
-        if (!user) { return res.status(404).send({ message: "User not found" }) }
+        // Если пользователь не найден
+        if (!user) { 
+            return res.status(404).send({ message: "User not found" }) 
+        }
 
+        // Проверка пароля
         const passwordIsValid = bcrypt.compareSync(password, user.password)
-        // if the password does not match, return out of the function
-        if (!passwordIsValid) { return res.status(401).send({ message: "Invalid password" }) }
-        console.log(user)
-
-        // then we have a successful authentication
-        const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '24h' })
-        res.json({ token })
+        if (!passwordIsValid) { 
+            return res.status(401).send({ message: "Invalid password" }) 
+        }
+        
+        // Создание JWT токена с ролью пользователя
+        const token = jwt.sign({ 
+            id: user.id, 
+            role: user.role, 
+            username: user.username 
+        }, process.env.JWT_SECRET, { expiresIn: '24h' })
+        
+        res.json({ token, role: user.role })
     } catch (err) {
         console.log(err.message)
         res.sendStatus(503)

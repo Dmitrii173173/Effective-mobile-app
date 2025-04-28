@@ -1,5 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authMiddleware, adminMiddleware, superuserMiddleware } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -175,6 +176,8 @@ router.patch('/:id/complete', async (req, res) => {
  *   patch:
  *     summary: Cancel an appeal
  *     tags: [Appeals]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -201,8 +204,10 @@ router.patch('/:id/complete', async (req, res) => {
  *         description: Appeal not found
  *       400:
  *         description: Invalid request or appeal is already completed/cancelled
+ *       403:
+ *         description: Requires admin or superuser role
  */
-router.patch('/:id/cancel', async (req, res) => {
+router.patch('/:id/cancel', adminMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const { cancelReason } = req.body;
@@ -242,6 +247,8 @@ router.patch('/:id/cancel', async (req, res) => {
  *   patch:
  *     summary: Cancel all appeals in progress
  *     tags: [Appeals]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -267,8 +274,10 @@ router.patch('/:id/cancel', async (req, res) => {
  *                   description: Number of appeals cancelled
  *       400:
  *         description: Cancellation reason is required
+ *       403:
+ *         description: Requires superuser role
  */
-router.patch('/cancel-all-in-progress', async (req, res) => {
+router.patch('/cancel-all-in-progress', superuserMiddleware, async (req, res) => {
   try {
     const { cancelReason } = req.body;
     

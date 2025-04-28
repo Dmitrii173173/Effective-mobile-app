@@ -1,0 +1,51 @@
+# Установка опции автоматической нормализации окончаний строк для всех файлов
+* text=auto
+
+# Явно объявляем файлы с текстом и их нормализацию
+*.css text eol=lf
+*.html text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.mdx text eol=lf
+*.prisma text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.env text eol=lf
+*.sql text eol=lf
+
+# Next.js специфичные файлы
+.env* text eol=lf
+
+# Для всех TypeScript/JavaScript/JSON файлов в проекте используем LF
+frontend/**/*.js text eol=lf
+frontend/**/*.jsx text eol=lf
+frontend/**/*.ts text eol=lf
+frontend/**/*.tsx text eol=lf
+frontend/**/*.json text eol=lf
+frontend/**/*.css text eol=lf
+frontend/package*.json text eol=lf
+
+# Бинарные файлы (не трогать окончания строк)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+*.ttf binary
+*.otf binary
+*.pdf binary
+*.zip binary
+
+# Скрипты должны сохранять LF даже в Windows
+*.sh text eol=lf
+
+# Используем CRLF для Windows-специфичных файлов
+*.bat text eol=crlf
+*.cmd text eol=crlf

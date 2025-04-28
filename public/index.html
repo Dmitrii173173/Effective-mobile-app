@@ -33,6 +33,7 @@
     </section>
     <header style="display: none;">
         <h1 class="text-gradient">You have 0 open tasks.</h1>
+        <button onclick="logout()" class="logout-btn">Logout</button>
     </header>
     <nav style="display: none;" class="tab-container">
         <button onclick="changeTab('All')" class="tab-button  selected-tab">
@@ -50,15 +51,39 @@
 
 
     </main>
+    
+    <section id="admin-dashboard" style="display: none;">
+        <h2>Admin Dashboard</h2>
+        <div class="card">
+            <h3>User Management</h3>
+            <div id="user-management-container">
+                <div class="input-container">
+                    <input id="newUserName" placeholder="Username" />
+                    <input id="newUserPassword" placeholder="Password" type="password" />
+                    <select id="newUserRole">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                        <option value="superuser">Superuser</option>
+                    </select>
+                    <button onclick="registerNewUser()">
+                        <i class="fa-solid fa-plus"></i> Add User
+                    </button>
+                </div>
+                <div id="users-list"></div>
+            </div>
+        </div>
+    </section>
 </body>
 <script>
     let token = localStorage.getItem('token')
+    let userRole = localStorage.getItem('userRole')
 
     let isLoading = false
     let isAuthenticating = false
     let isRegistration = false
     let selectedTab = 'All'
     let todos = []
+    let users = []
 
     const apiBase = '/'
 
@@ -66,6 +91,7 @@
     const nav = document.querySelector('nav')
     const header = document.querySelector('header')
     const main = document.querySelector('main')
+    const adminDashboard = document.getElementById('admin-dashboard')
     const navElements = document.querySelectorAll('.tab-button')
     const authContent = document.getElementById('auth')
     const textError = document.getElementById('error')
@@ -83,6 +109,16 @@
         header.style.display = 'flex'
         main.style.display = 'flex'
         authContent.style.display = 'none'
+        
+        // Показываем админ-панель для суперпользователя и админа
+        if (userRole === 'superuser' || userRole === 'admin') {
+            adminDashboard.style.display = 'block'
+            if (userRole === 'superuser') {
+                await fetchUsers()
+            }
+        } else {
+            adminDashboard.style.display = 'none'
+        }
 
         await fetchTodos()
     }
@@ -216,7 +252,9 @@
 
             if (data.token) {
                 token = data.token
+                userRole = data.role
                 localStorage.setItem('token', token)
+                localStorage.setItem('userRole', userRole)
 
                 // authenicating into loading
                 authBtn.innerText = 'Loading...'
@@ -244,6 +282,19 @@
 
     function logout() {
         // wipe states and clear cached token
+        localStorage.removeItem('token')
+        localStorage.removeItem('userRole')
+        token = null
+        userRole = null
+        todos = []
+        users = []
+        
+        // Перенаправляем на страницу авторизации
+        nav.style.display = 'none'
+        header.style.display = 'none'
+        main.style.display = 'none'
+        adminDashboard.style.display = 'none'
+        authContent.style.display = 'flex'
     }
 
     // CRUD LOGIC
@@ -302,6 +353,85 @@
         fetchTodos()
     }
 
+    // Функции для администратора и суперпользователя
+    async function fetchUsers() {
+        if (userRole !== 'superuser') return;
+        
+        try {
+            const response = await fetch(apiBase + 'users', {
+                headers: { 'Authorization': token }
+            });
+            const usersData = await response.json();
+            users = usersData;
+            renderUsers();
+        } catch (error) {
+            console.error('Ошибка при получении списка пользователей:', error);
+        }
+    }
+    
+    function renderUsers() {
+        if (userRole !== 'superuser') return;
+        
+        const usersList = document.getElementById('users-list');
+        let usersHtml = '<div class="users-grid">';
+        
+        users.forEach(user => {
+            usersHtml += `
+            <div class="user-card card">
+                <h4>${user.username}</h4>
+                <p>Роль: ${user.role}</p>
+            </div>
+            `;
+        });
+        
+        usersHtml += '</div>';
+        usersList.innerHTML = usersHtml;
+    }
+    
+    async function registerNewUser() {
+        if (userRole !== 'superuser') {
+            alert('Только суперпользователь может регистрировать новых пользователей');
+            return;
+        }
+        
+        const username = document.getElementById('newUserName').value;
+        const password = document.getElementById('newUserPassword').value;
+        const role = document.getElementById('newUserRole').value;
+        
+        if (!username || !password) {
+            alert('Введите имя пользователя и пароль');
+            return;
+        }
+        
+        try {
+            const response = await fetch(apiBase + 'auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token
+                },
+                body: JSON.stringify({ username, password, role })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                alert(`Пользователь ${username} успешно зарегистрирован`);
+                document.getElementById('newUserName').value = '';
+                document.getElementById('newUserPassword').value = '';
+                document.getElementById('newUserRole').value = 'user';
+                
+                // Обновляем список пользователей
+                await fetchUsers();
+            } else {
+                alert(`Ошибка: ${data.error || 'Не удалось зарегистрировать пользователя'}`);
+            }
+        } catch (error) {
+            console.error('Ошибка при регистрации пользователя:', error);
+            alert('Произошла ошибка при регистрации пользователя');
+        }
+    }
+    
     // UTILITY FUNCTIONS
 
 
