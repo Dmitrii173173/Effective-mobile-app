@@ -27,3 +27,14 @@ model Todo {
   userId    Int   
   user      User      @relation(fields: [userId], references: [id])
 }
+
+model Appeal {
+  id          Int       @id @default(autoincrement())
+  subject     String
+  description String
+  status      String    @default("new") // Возможные значения: "new", "in_progress", "completed", "cancelled"
+  solution    String?
+  cancelReason String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}

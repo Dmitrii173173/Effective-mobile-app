@@ -3,6 +3,7 @@ import path, { dirname } from 'path'
 import { fileURLToPath } from 'url'
 import authRoutes from './routes/authRoutes.js'
 import todoRoutes from './routes/todoRoutes.js'
+import appealsRoutes from './routes/appealsRoutes.js'
 import authMiddleware from './middleware/authMiddleware.js'
 import { swaggerUi, specs } from './swagger.js'
 
@@ -31,6 +32,7 @@ app.get('/', (req, res) => {
 // Routes
 app.use('/auth', authRoutes)
 app.use('/todos', authMiddleware, todoRoutes)
+app.use('/appeals', appealsRoutes)
 
 app.listen(PORT, () => {
     console.log(`Server has started on port: ${PORT}`)

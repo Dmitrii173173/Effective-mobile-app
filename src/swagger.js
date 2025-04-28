@@ -5,9 +5,9 @@ const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Todo API',
+      title: 'Todo & Appeals API',
       version: '1.0.0',
-      description: 'API для управления задачами с аутентификацией',
+      description: 'API для управления задачами и обращениями',
     },
     servers: [
       {
