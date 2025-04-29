@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель управления | Effective Mobile App</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <style>
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        
+        @media (min-width: 768px) {
+            .dashboard-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        .todo-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .todo-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .todo-item:last-child {
+            border-bottom: none;
+        }
+        
+        .todo-item.completed .todo-text {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+        
+        .todo-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .todo-actions button {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .add-todo {
+            display: flex;
+            margin-top: 1rem;
+        }
+        
+        .add-todo input {
+            flex: 1;
+            margin-right: 0.5rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6b7280;
+        }
+        
+        .user-info {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background-color: #f3f4f6;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Система обращений</h2>
+            <nav>
+                <a href="/appeals.html">Обращения</a>
+                <a href="/dashboard.html" class="active">Задачи</a>
+                <a href="javascript:void(0)" id="logout-link">Выйти</a>
+            </nav>
+        </div>
+
+        <div id="loading" class="loading">
+            <p>Загрузка данных...</p>
+        </div>
+
+        <div id="content" style="display: none;">
+            <div id="user-info" class="user-info"></div>
+
+            <div class="dashboard-container">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Мои задачи</h2>
+                    </div>
+                    <div id="todos-container">
+                        <ul id="todo-list" class="todo-list"></ul>
+                        <div class="add-todo">
+                            <input type="text" id="new-todo" placeholder="Новая задача">
+                            <button id="add-todo-btn">Добавить</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="admin-section" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2>Административная панель</h2>
+                        </div>
+                        <div id="admin-content">
+                            <p>Доступ к административным функциям:</p>
+                            <ul class="mt-4">
+                                <li><a href="/appeals.html">Управление обращениями</a></li>
+                                <li id="superuser-link" style="display: none;"><a href="/users.html">Управление пользователями</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Проверка авторизации
+            const token = localStorage.getItem('token');
+            const userRole = localStorage.getItem('userRole');
+            
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
+            }
+            
+            // Настройка информации о пользователе
+            let username = 'Пользователь';
+            try {
+                const tokenData = JSON.parse(atob(token.split('.')[1]));
+                username = tokenData.username || 'Пользователь';
+                
+                const userInfo = document.getElementById('user-info');
+                userInfo.innerHTML = `
+                    <p><strong>Пользователь:</strong> ${username}</p>
+                    <p><strong>Роль:</strong> ${userRole === 'superuser' ? 'Суперпользователь' : userRole === 'admin' ? 'Администратор' : 'Пользователь'}</p>
+                `;
+            } catch (e) {
+                console.error('Ошибка при декодировании токена:', e);
+            }
+            
+            // Показать админ секцию для админов и суперпользователей
+            if (userRole === 'admin' || userRole === 'superuser') {
+                document.getElementById('admin-section').style.display = 'block';
+                
+                // Показать ссылку на управление пользователями только для суперпользователя
+                if (userRole === 'superuser') {
+                    document.getElementById('superuser-link').style.display = 'block';
+                }
+            }
+            
+            // Загрузка задач
+            loadTodos();
+            
+            // Обработчики событий
+            document.getElementById('add-todo-btn').addEventListener('click', addTodo);
+            document.getElementById('logout-link').addEventListener('click', logout);
+            
+            // Показать содержимое, скрыть загрузку
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+        });
+        
+        async function loadTodos() {
+            try {
+                const response = await fetch('/todos', {
+                    headers: {
+                        'Authorization': localStorage.getItem('token')
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Ошибка при загрузке задач');
+                }
+                
+                const todos = await response.json();
+                renderTodos(todos);
+            } catch (error) {
+                console.error('Ошибка загрузки задач:', error);
+                document.getElementById('todo-list').innerHTML = `
+                    <li class="todo-item">
+                        <span class="todo-text">Ошибка загрузки задач. Пожалуйста, попробуйте позже.</span>
+                    </li>
+                `;
+            }
+        }
+        
+        function renderTodos(todos) {
+            const todoList = document.getElementById('todo-list');
+            todoList.innerHTML = '';
+            
+            if (todos.length === 0) {
+                todoList.innerHTML = `
+                    <li class="todo-item">
+                        <span class="todo-text">У вас нет задач. Добавьте новую задачу.</span>
+                    </li>
+                `;
+                return;
+            }
+            
+            todos.forEach(todo => {
+                const todoItem = document.createElement('li');
+                todoItem.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+                todoItem.innerHTML = `
+                    <span class="todo-text">${todo.task}</span>
+                    <div class="todo-actions">
+                        ${!todo.completed ? `<button onclick="completeTodo(${todo.id})">Выполнить</button>` : ''}
+                        <button onclick="deleteTodo(${todo.id})" class="secondary">Удалить</button>
+                    </div>
+                `;
+                todoList.appendChild(todoItem);
+            });
+        }
+        
+        async function addTodo() {
+            const newTodoInput = document.getElementById('new-todo');
+            const task = newTodoInput.value.trim();
+            
+            if (!task) return;
+            
+            try {
+                const response = await fetch('/todos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': localStorage.getItem('token')
+                    },
+                    body: JSON.stringify({ task })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Ошибка при добавлении задачи');
+                }
+                
+                newTodoInput.value = '';
+                loadTodos();
+            } catch (error) {
+                console.error('Ошибка добавления задачи:', error);
+                alert('Не удалось добавить задачу. Пожалуйста, попробуйте еще раз.');
+            }
+        }
+        
+        async function completeTodo(id) {
+            try {
+                const response = await fetch(`/todos/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': localStorage.getItem('token')
+                    },
+                    body: JSON.stringify({ completed: true })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Ошибка при обновлении задачи');
+                }
+                
+                loadTodos();
+            } catch (error) {
+                console.error('Ошибка выполнения задачи:', error);
+                alert('Не удалось выполнить задачу. Пожалуйста, попробуйте еще раз.');
+            }
+        }
+        
+        async function deleteTodo(id) {
+            if (!confirm('Вы уверены, что хотите удалить эту задачу?')) return;
+            
+            try {
+                const response = await fetch(`/todos/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': localStorage.getItem('token')
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Ошибка при удалении задачи');
+                }
+                
+                loadTodos();
+            } catch (error) {
+                console.error('Ошибка удаления задачи:', error);
+                alert('Не удалось удалить задачу. Пожалуйста, попробуйте еще раз.');
+            }
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userRole');
+            window.location.href = '/login.html';
+        }
+    </script>
+</body>
+</html>

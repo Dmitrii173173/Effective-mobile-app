@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url'
 import authRoutes from './routes/authRoutes.js'
 import todoRoutes from './routes/todoRoutes.js'
 import appealsRoutes from './routes/appealsRoutes.js'
+import simpleAuthRoutes from './routes/simpleAuthRoutes.js'
 import { authMiddleware, superuserMiddleware } from './middleware/authMiddleware.js'
 import { swaggerUi, specs } from './swagger.js'
 import initUsers from './initDbUsers.js'
@@ -31,10 +32,22 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '../public', 'index.html'))
 })
 
+// Логирование запросов для отладки
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} | ${req.method} ${req.url}`);
+    next();
+});
+
 // Routes
 app.use('/auth', authRoutes)
+app.use('/simple-auth', simpleAuthRoutes) // Добавленный маршрут для простой аутентификации
 app.use('/todos', authMiddleware, todoRoutes)
 app.use('/appeals', appealsRoutes)
+
+// Обработка ошибок 404 для API маршрутов
+app.use('/api/*', (req, res) => {
+    res.status(404).json({ error: 'API endpoint not found' });
+});
 
 // Маршрут для получения пользователей (только для суперпользователя)
 app.get('/users', superuserMiddleware, async (req, res) => {
@@ -56,6 +69,8 @@ app.get('/users', superuserMiddleware, async (req, res) => {
 
 app.listen(PORT, async () => {
     console.log(`Server has started on port: ${PORT}`)
+    console.log(`Swagger UI доступен по адресу: http://localhost:${PORT}/api-docs`)
+    console.log(`Простая страница входа: http://localhost:${PORT}/simple-login.html`)
     
     // Инициализация базовых пользователей при запуске сервера
     try {

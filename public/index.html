@@ -1,452 +1,117 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Todo App | Node.JS Express.JS SQLite</title>
-    <link rel="stylesheet" href="/styles.css" />
-    <link rel="stylesheet" href="/fanta.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
-        integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <title>Система обращений | Effective Mobile App</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <style>
+        .hero {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .hero h1 {
+            font-size: 2.5rem;
+            color: #1e40af;
+            margin-bottom: 1rem;
+        }
+        
+        .hero p {
+            font-size: 1.25rem;
+            color: #4b5563;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        @media (min-width: 768px) {
+            .features {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        .feature-card {
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            color: #2563eb;
+            margin-bottom: 1rem;
+        }
+        
+        .cta {
+            text-align: center;
+            margin-top: 3rem;
+        }
+        
+        .cta .button {
+            font-size: 1.125rem;
+            padding: 0.75rem 2rem;
+        }
+    </style>
 </head>
-
 <body>
-    <section id="auth">
-        <div>
-            <h2 className="sign-up-text">Login</h2>
-            <p>Create an account!</p>
+    <div class="container">
+        <div class="header">
+            <h2>Система обращений</h2>
+            <nav>
+                <a href="/" class="active">Главная</a>
+                <a href="/login.html">Войти</a>
+                <a href="/register.html">Регистрация</a>
+            </nav>
         </div>
 
-        <p id="error" style="display: none;"></p>
-        <input id="emailInput" placeholder="Email" />
-        <input id="passwordInput" placeholder="********" type="password" />
-        <button id="authBtn" onclick="authenticate()">
-            Submit
-        </button>
-        <hr />
-        <div class="register-content">
-            <p>Don&apos;t have an account?</p>
-            <button onclick="toggleIsRegister()" id="registerBtn">Sign up</button>
+        <div class="hero">
+            <h1>Effective Mobile App</h1>
+            <p>Эффективное управление задачами и обращениями для вашей организации</p>
         </div>
-    </section>
-    <header style="display: none;">
-        <h1 class="text-gradient">You have 0 open tasks.</h1>
-        <button onclick="logout()" class="logout-btn">Logout</button>
-    </header>
-    <nav style="display: none;" class="tab-container">
-        <button onclick="changeTab('All')" class="tab-button  selected-tab">
-            <h4>All <span>(0)</span></h4>
-        </button>
-        <button onclick="changeTab('Open')" class="tab-button  ">
-            <h4>Open <span>(0)</span></h4>
-        </button>
-        <button onclick="changeTab('Complete')" class="tab-button  ">
-            <h4>Complete <span>(0)</span></h4>
-        </button>
-        <hr />
-    </nav>
-    <main style="display: none;">
 
-
-    </main>
-    
-    <section id="admin-dashboard" style="display: none;">
-        <h2>Admin Dashboard</h2>
-        <div class="card">
-            <h3>User Management</h3>
-            <div id="user-management-container">
-                <div class="input-container">
-                    <input id="newUserName" placeholder="Username" />
-                    <input id="newUserPassword" placeholder="Password" type="password" />
-                    <select id="newUserRole">
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                        <option value="superuser">Superuser</option>
-                    </select>
-                    <button onclick="registerNewUser()">
-                        <i class="fa-solid fa-plus"></i> Add User
-                    </button>
-                </div>
-                <div id="users-list"></div>
+        <div class="features">
+            <div class="feature-card card">
+                <div class="feature-icon">📋</div>
+                <h3>Управление задачами</h3>
+                <p>Создавайте, отслеживайте и выполняйте задачи в удобном интерфейсе</p>
+            </div>
+            
+            <div class="feature-card card">
+                <div class="feature-icon">🔄</div>
+                <h3>Обработка обращений</h3>
+                <p>Принимайте и обрабатывайте обращения от пользователей</p>
+            </div>
+            
+            <div class="feature-card card">
+                <div class="feature-icon">👥</div>
+                <h3>Управление пользователями</h3>
+                <p>Различные уровни доступа для эффективной работы команды</p>
             </div>
         </div>
-    </section>
-</body>
-<script>
-    let token = localStorage.getItem('token')
-    let userRole = localStorage.getItem('userRole')
 
-    let isLoading = false
-    let isAuthenticating = false
-    let isRegistration = false
-    let selectedTab = 'All'
-    let todos = []
-    let users = []
-
-    const apiBase = '/'
-
-    // elements
-    const nav = document.querySelector('nav')
-    const header = document.querySelector('header')
-    const main = document.querySelector('main')
-    const adminDashboard = document.getElementById('admin-dashboard')
-    const navElements = document.querySelectorAll('.tab-button')
-    const authContent = document.getElementById('auth')
-    const textError = document.getElementById('error')
-    const email = document.getElementById('emailInput')
-    const password = document.getElementById('passwordInput')
-    const registerBtn = document.getElementById('registerBtn')
-    const authBtn = document.getElementById('authBtn')
-    const addTodoBtn = document.getElementById('addTodoBtn')
-    // const deleteBtn = document.getElementById('')
-    // const updateBtn = 
-
-    // PAGE RENDERING LOGIC
-    async function showDashboard() {
-        nav.style.display = 'block'
-        header.style.display = 'flex'
-        main.style.display = 'flex'
-        authContent.style.display = 'none'
-        
-        // Показываем админ-панель для суперпользователя и админа
-        if (userRole === 'superuser' || userRole === 'admin') {
-            adminDashboard.style.display = 'block'
-            if (userRole === 'superuser') {
-                await fetchUsers()
-            }
-        } else {
-            adminDashboard.style.display = 'none'
-        }
-
-        await fetchTodos()
-    }
-
-    function updateHeaderText() {
-        const todosLength = todos.length
-        const newString = todos.length === 1 ?
-            `You have 1 open task.` :
-            `You have ${todosLength} open tasks.`
-        header.querySelector('h1').innerText = newString
-    }
-
-    function updateNavCount() {
-        navElements.forEach(ele => {
-            const btnText = ele.innerText.split(' ')[0]
-
-            // filter todos in here
-            const count = todos.filter(val => {
-                if (btnText === 'All') {
-                    return true
-                }
-                return btnText === 'Complete' ?
-                    val.completed :
-                    !val.completed
-            }).length
-
-            // target inside space and update value
-            ele.querySelector('span').innerText = `(${count})`
-        })
-    }
-
-    function changeTab(tab) {
-        selectedTab = tab
-        navElements.forEach(val => {
-            if (val.innerText.includes(tab)) {
-                val.classList.add('selected-tab')
-            } else {
-                val.classList.remove('selected-tab')
-            }
-        })
-        renderTodos()
-    }
-
-    function renderTodos() {
-        // need to add filtering logic in here
-
-        updateNavCount()
-        updateHeaderText()
-
-        let todoList = ``
-        todos.filter(val => {
-            return selectedTab === 'All' ? true : selectedTab === 'Complete' ? val.completed : !val.completed
-        }).forEach((todo, todoIndex) => {
-            const taskIndex = todo.id
-            todoList += `
-            <div class="card todo-item">
-                <p>${todo.task}</p>
-                <div class="todo-buttons">
-                    <button onclick="updateTodo(${taskIndex})" ${todo.completed ? 'disabled' : ''}>
-                        <h6>Done</h6>
-                    </button>
-                    <button onclick="deleteTodo(${taskIndex})">
-                        <h6>Delete</h6>
-                    </button>
-                </div>
-            </div>
-            `
-        })
-        todoList += `
-        <div class="input-container">
-            <input id="todoInput" placeholder="Add task" />
-            <button onclick="addTodo()">
-                <i class="fa-solid fa-plus"></i>
-            </button>
+        <div class="cta">
+            <p>Готовы начать работу с системой?</p>
+            <a href="/login.html" class="button">Войти в систему</a>
+            <p class="mt-4">Нет учетной записи? <a href="/register.html">Зарегистрироваться</a></p>
         </div>
-        `
-        main.innerHTML = todoList
-    }
+    </div>
 
-    // showDashboard()
-
-    // AUTH LOGIC
-
-    async function toggleIsRegister() {
-        isRegistration = !isRegistration
-        registerBtn.innerText = isRegistration ? 'Sign in' : 'Sign up'
-        document.querySelector('#auth > div h2').innerText = isRegistration ? 'Sign Up' : 'Login'
-        document.querySelector('.register-content p').innerText = isRegistration ? 'Already have an account?' : 'Don\'t have an account?'
-        document.querySelector('.register-content button').innerText = isRegistration ? 'Sign in' : 'Sign up'
-    }
-
-    async function authenticate() {
-        // access email and pass values
-        const emailVal = email.value
-        const passVal = password.value
-
-        // guard clauses... if authenticating, return
-        if (
-            isLoading ||
-            isAuthenticating ||
-            !emailVal ||
-            !passVal ||
-            passVal.length < 6 ||
-            !emailVal.includes('@')
-        ) { return }
-
-        // reset error and set isAuthenticating to true
-        error.style.display = 'none'
-        isAuthenticating = true
-        authBtn.innerText = 'Authenticating...'
-
-        try {
-            let data
-            if (isRegistration) {
-                // register an account
-                const response = await fetch(apiBase + 'auth/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: emailVal, password: passVal })
-                })
-                data = await response.json()
-            } else {
-                // login an account
-                const response = await fetch(apiBase + 'auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: emailVal, password: passVal })
-                })
-                data = await response.json()
+    <script>
+        // Проверяем, авторизован ли пользователь
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('token');
+            
+            // Если пользователь авторизован, перенаправляем на панель управления
+            if (token) {
+                window.location.href = '/dashboard.html';
             }
-
-            if (data.token) {
-                token = data.token
-                userRole = data.role
-                localStorage.setItem('token', token)
-                localStorage.setItem('userRole', userRole)
-
-                // authenicating into loading
-                authBtn.innerText = 'Loading...'
-
-                // fetch todos
-                await fetchTodos()
-
-                // show dashboard
-                showDashboard()
-            } else {
-                throw Error('❌ Failed to authenticate...')
-            }
-
-        } catch (err) {
-            console.log(err.message)
-            error.innerText = err.message
-            error.style.display = 'block'
-        } finally {
-            authBtn.innerText = 'Submit'
-            isAuthenticating = false
-        }
-
-
-    }
-
-    function logout() {
-        // wipe states and clear cached token
-        localStorage.removeItem('token')
-        localStorage.removeItem('userRole')
-        token = null
-        userRole = null
-        todos = []
-        users = []
-        
-        // Перенаправляем на страницу авторизации
-        nav.style.display = 'none'
-        header.style.display = 'none'
-        main.style.display = 'none'
-        adminDashboard.style.display = 'none'
-        authContent.style.display = 'flex'
-    }
-
-    // CRUD LOGIC
-
-    async function fetchTodos() {
-        isLoading = true
-        const response = await fetch(apiBase + 'todos', {
-            headers: { 'Authorization': token }
-        })
-        const todosData = await response.json()
-        todos = todosData
-        isLoading = false
-        renderTodos()
-    }
-
-    async function updateTodo(index) {
-        // set task complete status to true
-        await fetch(apiBase + 'todos' + '/' + index, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': token
-            },
-            body: JSON.stringify({ task: todos.find(val => val.id === index).task, completed: 1 })
-        })
-        fetchTodos()
-    }
-
-    async function deleteTodo(index) {
-        // set task complete status to true
-        await fetch(apiBase + 'todos' + '/' + index, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': token
-            },
-        })
-        fetchTodos()
-    }
-
-    async function addTodo() {
-        // have to access this val later as it's rendered with js
-        const todoInput = document.getElementById('todoInput')
-        const task = todoInput.value
-
-        if (!task) { return }
-
-        await fetch(apiBase + 'todos', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': token
-            },
-            body: JSON.stringify({ task })
-        })
-        todoInput.value = ''
-        fetchTodos()
-    }
-
-    // Функции для администратора и суперпользователя
-    async function fetchUsers() {
-        if (userRole !== 'superuser') return;
-        
-        try {
-            const response = await fetch(apiBase + 'users', {
-                headers: { 'Authorization': token }
-            });
-            const usersData = await response.json();
-            users = usersData;
-            renderUsers();
-        } catch (error) {
-            console.error('Ошибка при получении списка пользователей:', error);
-        }
-    }
-    
-    function renderUsers() {
-        if (userRole !== 'superuser') return;
-        
-        const usersList = document.getElementById('users-list');
-        let usersHtml = '<div class="users-grid">';
-        
-        users.forEach(user => {
-            usersHtml += `
-            <div class="user-card card">
-                <h4>${user.username}</h4>
-                <p>Роль: ${user.role}</p>
-            </div>
-            `;
         });
-        
-        usersHtml += '</div>';
-        usersList.innerHTML = usersHtml;
-    }
-    
-    async function registerNewUser() {
-        if (userRole !== 'superuser') {
-            alert('Только суперпользователь может регистрировать новых пользователей');
-            return;
-        }
-        
-        const username = document.getElementById('newUserName').value;
-        const password = document.getElementById('newUserPassword').value;
-        const role = document.getElementById('newUserRole').value;
-        
-        if (!username || !password) {
-            alert('Введите имя пользователя и пароль');
-            return;
-        }
-        
-        try {
-            const response = await fetch(apiBase + 'auth/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': token
-                },
-                body: JSON.stringify({ username, password, role })
-            });
-            
-            const data = await response.json();
-            
-            if (response.ok) {
-                alert(`Пользователь ${username} успешно зарегистрирован`);
-                document.getElementById('newUserName').value = '';
-                document.getElementById('newUserPassword').value = '';
-                document.getElementById('newUserRole').value = 'user';
-                
-                // Обновляем список пользователей
-                await fetchUsers();
-            } else {
-                alert(`Ошибка: ${data.error || 'Не удалось зарегистрировать пользователя'}`);
-            }
-        } catch (error) {
-            console.error('Ошибка при регистрации пользователя:', error);
-            alert('Произошла ошибка при регистрации пользователя');
-        }
-    }
-    
-    // UTILITY FUNCTIONS
-
-
-    // load page and read local storage for key
-
-    // default to login screen
-
-    // if is authenticated, show todo app
-    if (token) {
-        async function run() {
-            await fetchTodos()
-            showDashboard()
-        }
-        run()
-    }
-</script>
-
+    </script>
+</body>
 </html>

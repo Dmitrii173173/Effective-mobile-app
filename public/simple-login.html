@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Простой вход в систему</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f9fc;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #0077cc;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            background-color: #0077cc;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #005fa3;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 13px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .links {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .links a {
+            color: #0077cc;
+            text-decoration: none;
+            margin: 0 10px;
+        }
+        .links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Простой вход в систему</h1>
+        
+        <div class="form-group">
+            <label for="username">Имя пользователя:</label>
+            <input type="text" id="username" placeholder="Введите имя пользователя" value="dmitriiming">
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Пароль:</label>
+            <input type="password" id="password" placeholder="Введите пароль" value="007dd007dd">
+        </div>
+        
+        <button onclick="login()">Войти</button>
+        
+        <div id="result"></div>
+        
+        <div class="links">
+            <a href="http://localhost:3001/login" target="_blank">Перейти на страницу фронтенда</a>
+            <a href="/api-docs" target="_blank">API документация</a>
+        </div>
+    </div>
+    
+    <script>
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!username || !password) {
+                showError('Пожалуйста, введите имя пользователя и пароль');
+                return;
+            }
+            
+            try {
+                resultDiv.innerHTML = 'Выполняется запрос...';
+                resultDiv.className = '';
+                resultDiv.style.display = 'block';
+                
+                // Пробуем упрощенный вход
+                const simpleResponse = await fetch('/simple-auth/simple-login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const responseText = await simpleResponse.text();
+                let simpleData;
+                
+                try {
+                    simpleData = JSON.parse(responseText);
+                } catch (e) {
+                    showError('Сервер вернул неверный формат данных', { response: responseText });
+                    return;
+                }
+                
+                if (simpleResponse.ok) {
+                    showSuccess('Вход выполнен успешно через упрощенный маршрут!', simpleData);
+                    // Сохраняем токен
+                    localStorage.setItem('token', simpleData.token);
+                    localStorage.setItem('role', simpleData.role);
+                } else {
+                    showError('Ошибка входа: ' + (simpleData.error || 'Неизвестная ошибка'), simpleData);
+                }
+            } catch (error) {
+                showError('Ошибка соединения с сервером', { error: error.message });
+            }
+        }
+        
+        function showSuccess(message, data) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'success';
+            resultDiv.innerHTML = `
+                <p><strong>${message}</strong></p>
+                <p>Роль: ${data.role}</p>
+                <p>Токен: <pre>${data.token}</pre></p>
+                <p>Вы можете перейти к <a href="http://localhost:3001/dashboard" target="_blank">панели управления</a> с этим токеном</p>
+            `;
+            resultDiv.style.display = 'block';
+        }
+        
+        function showError(message, details = null) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'error';
+            let html = `<p><strong>${message}</strong></p>`;
+            
+            if (details) {
+                html += `<pre>${JSON.stringify(details, null, 2)}</pre>`;
+            }
+            
+            resultDiv.innerHTML = html;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

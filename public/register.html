@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация | Effective Mobile App</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <style>
+        /* Дополнительные стили для страницы регистрации */
+        .password-rules {
+            margin-top: 0.5rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+        
+        .error-message {
+            color: #ef4444;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border: 1px solid #f87171;
+            border-radius: 4px;
+            background-color: #fee2e2;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>Система обращений</h2>
+            <nav>
+                <a href="/">Обращения</a>
+                <a href="/login.html">Войти</a>
+                <a href="/register.html" class="active">Регистрация</a>
+            </nav>
+        </div>
+
+        <h1>Регистрация</h1>
+        <p>Создайте новую учетную запись для доступа к системе</p>
+
+        <div id="error-message" class="error-message"></div>
+
+        <form id="register-form">
+            <div class="form-group">
+                <label for="username">Имя пользователя</label>
+                <input type="text" id="username" name="username" placeholder="Придумайте имя пользователя" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Пароль</label>
+                <input type="password" id="password" name="password" placeholder="Придумайте пароль" required>
+                <p class="password-rules">Пароль должен содержать не менее 6 символов</p>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm-password">Подтверждение пароля</label>
+                <input type="password" id="confirm-password" name="confirm-password" placeholder="Повторите пароль" required>
+            </div>
+
+            <button type="submit" id="register-button">Зарегистрироваться</button>
+
+            <div class="register-link text-center mt-4">
+                <p>Уже есть учетная запись? <a href="/login.html">Войти</a></p>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const registerForm = document.getElementById('register-form');
+            const errorMessage = document.getElementById('error-message');
+            const registerButton = document.getElementById('register-button');
+
+            registerForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // Показываем состояние загрузки
+                registerButton.textContent = 'Регистрация...';
+                registerButton.disabled = true;
+                errorMessage.style.display = 'none';
+                
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirm-password').value;
+                
+                // Валидация
+                if (password.length < 6) {
+                    errorMessage.textContent = 'Пароль должен содержать не менее 6 символов';
+                    errorMessage.style.display = 'block';
+                    registerButton.textContent = 'Зарегистрироваться';
+                    registerButton.disabled = false;
+                    return;
+                }
+                
+                if (password !== confirmPassword) {
+                    errorMessage.textContent = 'Пароли не совпадают';
+                    errorMessage.style.display = 'block';
+                    registerButton.textContent = 'Зарегистрироваться';
+                    registerButton.disabled = false;
+                    return;
+                }
+                
+                try {
+                    // Регистрация через API
+                    const response = await fetch('/auth/register', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            username, 
+                            password 
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        // Успешная регистрация, сохраняем токен
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('userRole', data.role);
+                        
+                        // Перенаправляем на панель управления
+                        window.location.href = '/dashboard.html';
+                    } else {
+                        throw new Error(data.error || 'Ошибка при регистрации');
+                    }
+                } catch (error) {
+                    console.error('Registration error:', error);
+                    errorMessage.textContent = error.message || 'Ошибка при регистрации. Пожалуйста, попробуйте еще раз.';
+                    errorMessage.style.display = 'block';
+                } finally {
+                    registerButton.textContent = 'Зарегистрироваться';
+                    registerButton.disabled = false;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
